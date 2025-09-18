@@ -1,0 +1,61 @@
+---
+- name: Install Docker on GCP VM
+  hosts: webservers
+  become: yes
+  tasks:
+
+    # 1️⃣ Stop services apt-daily pour éviter le lock dpkg
+    - name: Stop apt-daily services to avoid lock
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - apt-daily.service
+        - apt-daily-upgrade.service
+
+    # 2️⃣ S'assurer que dpkg n'a pas de problèmes
+    - name: Ensure dpkg is configured
+      command: dpkg --configure -a
+      ignore_errors: yes
+
+    # 3️⃣ Mise à jour du cache apt
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    # 4️⃣ Installer les paquets prérequis pour Docker
+    - name: Install prerequisites
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    # 5️⃣ Ajouter la clé GPG officielle de Docker
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+
+    # 6️⃣ Ajouter le dépôt Docker
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+
+    # 7️⃣ Installer Docker
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: latest
+
+    # 8️⃣ Assurer que Docker est démarré et activé
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes

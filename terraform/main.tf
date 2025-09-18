@@ -6,6 +6,24 @@ provider "google" {
   credentials = file(var.credentials_file)
 }
 
+#gerer fireware
+resource "google_compute_firewall" "allow-ssh" {
+  name    = "default-allow-ssh"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+
+  lifecycle {
+    prevent_destroy = true   # empêche Terraform de supprimer la règle existante
+  }
+}
+
+#resource VM
 resource "google_compute_instance" "vm" {
   name         = "infra-demo-vm"
   machine_type = "e2-micro"
